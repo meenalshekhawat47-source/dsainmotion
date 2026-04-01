@@ -1,6 +1,9 @@
 package com.dsainmotion;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +26,8 @@ import com.dsainmotion.entity.User;
 public class LoginController {
     @Autowired
 private StudyVaultRepository studyVaultRepository;
+@Autowired
+private PasswordEncoder passwordEncoder;
 
     @Autowired
     private UserRepository userRepository;
@@ -167,6 +172,14 @@ private StudyVaultRepository studyVaultRepository;
         loadUserData(session, model);
         return "array";
     }
+        @GetMapping("/linkedlist")
+    public String linkedList(HttpSession session, Model model) {
+        String redirect = checkAuth(session);
+        if (redirect != null) return redirect;
+        model.addAttribute("activePage", "home");
+        loadUserData(session, model);
+        return "linkedlist";
+    }
 
     @GetMapping("/logout")
     public String logout(HttpSession session) {
@@ -184,7 +197,7 @@ private StudyVaultRepository studyVaultRepository;
 
         User user = userRepository.getUserById(userid);
 
-        if (user != null && user.getPass().equals(password)) {
+        if (user != null && (passwordEncoder.matches(password, user.getPass()))) {
             session.setAttribute("userId", user.getUserId());
             model.addAttribute("name", user.getFirstName());
             model.addAttribute("email", user.getEmail());
@@ -201,6 +214,42 @@ private StudyVaultRepository studyVaultRepository;
             return "redirect:" + errorUrl;
         }
     }
+    @GetMapping("/forgot-password")
+public String forgotPasswordPage() {
+    return "forgot-password";
+}
+@Autowired
+private JavaMailSender mailSender;
+
+@PostMapping("/forgot-password")
+public String processForgotPassword(@RequestParam String email, Model model) {
+
+    User user = userRepository.findByEmail(email);
+
+    if(user != null) {
+        String token = java.util.UUID.randomUUID().toString();
+
+        user.setResetToken(token);
+        user.setTokenExpiry(java.time.LocalDateTime.now().plusMinutes(15));
+
+        userRepository.save(user);
+
+        String link = "http://localhost:8082/reset-password?token=" + token;
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Reset Password");
+        message.setText("Click this link to reset your password:\n" + link);
+
+        mailSender.send(message);
+
+        model.addAttribute("message", "Reset link sent to your email!");
+    } else {
+        model.addAttribute("message", "Email not found!");
+    }
+
+    return "forgot-password";
+}
 
     @PostMapping("/admin-login")
     public String loginAdmin(
@@ -465,7 +514,7 @@ public String update(@RequestParam int id,
             user.setLastName(last_name);
             user.setEmail(email);
             user.setPhone(phone);
-            user.setPass(pass);
+            user.setPass(passwordEncoder.encode(pass));
 
             userRepository.save(user);
             System.out.println("[registerUser] success user saved: " + user_id);
@@ -477,5 +526,21 @@ public String update(@RequestParam int id,
             return "register";
         }
     }
+    @GetMapping("/mail-test")
+@ResponseBody
+public String testMail() {
+    try {
+        SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setTo("YOUR_EMAIL@gmail.com");
+        msg.setSubject("Test");
+        msg.setText("Working");
+
+        mailSender.send(msg);
+        return "Mail sent!";
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "Error: " + e.getMessage();
+    }
+}
 
 }

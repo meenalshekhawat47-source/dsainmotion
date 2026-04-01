@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.List;
 
 @Controller
 public class StudyVaultController {
@@ -55,7 +56,7 @@ public class StudyVaultController {
         return "study-vault";
     }
 
-    // 🚀 MAIN MAGIC (ONE METHOD FOR ALL PAGES)
+    // 🚀 MAIN PAGE (FIXED)
     @GetMapping("/study/{slug}")
     public String dynamicPage(@PathVariable String slug,
                               HttpSession session,
@@ -81,16 +82,25 @@ public class StudyVaultController {
                                 Map.class
                         );
 
+                // 🔥 FIX: ensure sections is a LIST (not string)
+                Object sectionsObj = content.get("sections");
+
+                if (sectionsObj instanceof String) {
+                    List<Map<String, Object>> sectionsList =
+                            objectMapper.readValue((String) sectionsObj, List.class);
+                    content.put("sections", sectionsList);
+                }
+
                 model.addAttribute("content", content);
                 model.addAttribute("topic", studyVault.get().getTopic());
                 model.addAttribute("subtopic", studyVault.get().getSubtopic());
 
             } catch (Exception e) {
+                e.printStackTrace(); // helpful for debugging
                 model.addAttribute("content", null);
             }
         }
 
-        // 👉 IMPORTANT: create ONE common HTML page named this
         return "dynamic-template";
     }
 }

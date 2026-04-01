@@ -1,5 +1,7 @@
 package com.dsainmotion.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -27,6 +29,12 @@ public class User {
 
     @Column(name = "last_login_date")
     private java.time.LocalDate lastLoginDate;
+
+    @Column(name = "reset_token")
+private String resetToken;
+
+@Column(name = "token_expiry")
+private java.time.LocalDateTime tokenExpiry;
 
     // getters & setters
 
@@ -93,5 +101,20 @@ public class User {
     public void setLastLoginDate(java.time.LocalDate lastLoginDate) {
         this.lastLoginDate = lastLoginDate;
     }
+    public String getResetToken() {
+    return resetToken;
+}
+
+public void setResetToken(String resetToken) {
+    this.resetToken = resetToken;
+}
+
+public LocalDateTime getTokenExpiry() {
+    return tokenExpiry;
+}
+
+public void setTokenExpiry(LocalDateTime tokenExpiry) {
+    this.tokenExpiry = tokenExpiry;
+}
 }
 
